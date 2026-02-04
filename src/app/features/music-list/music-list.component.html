@@ -1,0 +1,48 @@
+<!-- Display each song in a card with title, artist, album image, and description -->
+ 
+
+<div class="music-list-container">
+	<div class="search-section">
+		<h1>Music Search</h1>
+		<div class="search-box">
+			<input
+				type="text"
+				[(ngModel)]="searchQuery"
+				placeholder="Search for songs or artists"
+				(keyup.enter)="onSearchSubmit()"
+				class="search-input"
+			/>
+			<button class="search-button" (click)="onSearchSubmit()">Search</button>
+		</div>
+	</div>
+
+	<div *ngIf="isLoading" class="loading">Loading...</div>
+
+	<div *ngIf="errorMessage && !isLoading" class="error">{{ errorMessage }}</div>
+
+	<div class="songs-grid">
+		<div *ngFor="let s of songs" class="song-card">
+			<div class="album-image-wrapper">
+				<img
+					*ngIf="s.artworkUrl; else placeholder"
+					[src]="s.artworkUrl"
+					[alt]="s.title"
+					class="album-image"
+				/>
+				<ng-template #placeholder>
+					<div class="placeholder-image">No Image</div>
+				</ng-template>
+			</div>
+			<div class="song-details">
+				<h3 class="song-title">{{ s.title }}</h3>
+				<p class="artist-name">{{ s.artist }}</p>
+				<p class="album-name" *ngIf="s.album">{{ s.album }}</p>
+				<p class="description" *ngIf="s.description">{{ s.description }}</p>
+			</div>
+		</div>
+	</div>
+
+	<div *ngIf="!isLoading && songs.length === 0 && !errorMessage" class="no-results">
+		Enter a search query to find songs.
+	</div>
+</div>
