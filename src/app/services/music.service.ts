@@ -12,7 +12,7 @@ export class MusicService {
 	constructor(private http: HttpClient) {}
 
   searchSongs(query: string, limit: number = 20): Observable<Song[]> {
-    const params = {
+    const params: any = {
       query: query,
       fmt: 'json',
       limit: String(limit)
@@ -37,40 +37,26 @@ export class MusicService {
   }
 
 
-  getRecordingDetails(recordingId: string): Observable<Song | null> {
-    const url = `${this.MB_SEARCH_URL}/${recordingId}`; // ws/2/recording/{id}
+  getSongByID(songId: string): Observable<Song | null> {
+    const url = `${this.MB_SEARCH_URL}/${songId}`;
     const params = { fmt: 'json', inc: 'releases+artists' };
 
     return this.http.get<any>(url, { params }).pipe(
-      switchMap((rec) => {
-        if (!rec) return of(null);
+      map((rec) => {
+        if (!rec) return null;
 
-        const artistCredit = (rec['artist-credit'] && rec['artist-credit'][0]) || {};
-        const release = (rec.releases && rec.releases[0]) || null;
+        const artistCredit = rec['artist-credit']?.[0] || {};
+        const release = rec.releases?.[0] || null;
 
-        const base: Song = {
+        return {
           id: rec.id,
           title: rec.title,
           artist: artistCredit.name || artistCredit.artist?.name || 'Unknown',
           album: release?.title,
-          artworkUrl: null,
+          artworkUrl: release ? `${this.COVER_ART_URL}/${release.id}` : null,
           description: rec.disambiguation || release?.disambiguation || '',
           releaseDate: release?.date || null
-        };
-
-        if (!release || !release.id) return of(base);
-
-        const caUrl = `${this.COVER_ART_URL}/${release.id}`;
-        return this.http.get<any>(caUrl).pipe(
-          map((ca) => {
-            if (ca && ca.images && ca.images.length) {
-              const img = ca.images[0];
-              base.artworkUrl = img.thumbnails?.['250'] || img.thumbnails?.['120'] || img.image || null;
-            }
-            return base;
-          }),
-          catchError(() => of(base))
-        );
+        } as Song;
       }),
       catchError(() => of(null))
     );
