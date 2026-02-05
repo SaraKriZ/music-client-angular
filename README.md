@@ -10,7 +10,6 @@ Angular application that displays songs and albums using external API.
 - TypeScript
 - RxJS
 - SCSS
-- Angular Material
 
 ## Features
 - Display songs/albums list
