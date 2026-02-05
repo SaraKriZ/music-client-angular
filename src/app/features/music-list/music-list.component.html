@@ -21,7 +21,7 @@
 	<div *ngIf="errorMessage && !isLoading" class="error">{{ errorMessage }}</div>
 
 	<div class="songs-grid">
-		<div *ngFor="let s of songs" class="song-card">
+		<a *ngFor="let s of songs" [routerLink]="['/detail', s.id]" class="song-card card-link">
 			<div class="album-image-wrapper">
 				<img
 					*ngIf="s.artworkUrl; else placeholder"
@@ -39,7 +39,7 @@
 				<p class="album-name" *ngIf="s.album">{{ s.album }}</p>
 				<p class="description" *ngIf="s.description">{{ s.description }}</p>
 			</div>
-		</div>
+		</a>
 	</div>
 
 	<div *ngIf="!isLoading && songs.length === 0 && !errorMessage" class="no-results">

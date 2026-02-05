@@ -9,7 +9,8 @@ export interface Song {
 	artist: string;
 	album?: string;
 	artworkUrl?: string | null;
-	description?: string;
+  description?: string;
+  releaseDate?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -41,6 +42,46 @@ export class MusicService {
         } as Song;
       })),
       catchError(() => of([]))
+    );
+  }
+
+
+  getRecordingDetails(recordingId: string): Observable<Song | null> {
+    const url = `${this.MB_SEARCH_URL}/${recordingId}`; // ws/2/recording/{id}
+    const params = { fmt: 'json', inc: 'releases+artists' };
+
+    return this.http.get<any>(url, { params }).pipe(
+      switchMap((rec) => {
+        if (!rec) return of(null);
+
+        const artistCredit = (rec['artist-credit'] && rec['artist-credit'][0]) || {};
+        const release = (rec.releases && rec.releases[0]) || null;
+
+        const base: Song = {
+          id: rec.id,
+          title: rec.title,
+          artist: artistCredit.name || artistCredit.artist?.name || 'Unknown',
+          album: release?.title,
+          artworkUrl: null,
+          description: rec.disambiguation || release?.disambiguation || '',
+          releaseDate: release?.date || null
+        };
+
+        if (!release || !release.id) return of(base);
+
+        const caUrl = `${this.COVER_ART_URL}/${release.id}`;
+        return this.http.get<any>(caUrl).pipe(
+          map((ca) => {
+            if (ca && ca.images && ca.images.length) {
+              const img = ca.images[0];
+              base.artworkUrl = img.thumbnails?.['250'] || img.thumbnails?.['120'] || img.image || null;
+            }
+            return base;
+          }),
+          catchError(() => of(base))
+        );
+      }),
+      catchError(() => of(null))
     );
   }
 }

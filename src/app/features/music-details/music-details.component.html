@@ -1,0 +1,20 @@
+<div class="details-container">
+  <button class="back" routerLink="/">← Back</button>
+
+  <div *ngIf="isLoading" class="loading">Loading...</div>
+  <div *ngIf="errorMessage && !isLoading" class="error">{{ errorMessage }}</div>
+
+  <div *ngIf="song" class="details-card">
+    <div class="cover">
+      <img *ngIf="song.artworkUrl; else noImg" [src]="song.artworkUrl" [alt]="song.title" />
+      <ng-template #noImg><div class="no-image">No Image</div></ng-template>
+    </div>
+    <div class="info">
+      <h2>{{ song.title }}</h2>
+      <p class="artist">{{ song.artist }}</p>
+      <p class="album" *ngIf="song.album">Album: {{ song.album }}</p>
+      <p class="date" *ngIf="song.releaseDate">Released: {{ song.releaseDate }}</p>
+      <p class="description" *ngIf="song.description">{{ song.description }}</p>
+    </div>
+  </div>
+</div>
