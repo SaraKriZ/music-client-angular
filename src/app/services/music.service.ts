@@ -2,16 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, of } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
-
-export interface Song {
-	id: string;
-	title: string;
-	artist: string;
-	album?: string;
-	artworkUrl?: string | null;
-  description?: string;
-  releaseDate?: string | null;
-}
+import { Song, Album } from '../models/music.models';
 
 @Injectable({ providedIn: 'root' })
 export class MusicService {

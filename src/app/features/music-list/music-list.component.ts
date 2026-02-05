@@ -2,7 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { MusicService, Song } from '../../services/music.service';
+import { MusicService } from '../../services/music.service';
+import { Song } from '../../models/music.models';
 
 @Component({
 	selector: 'app-music-list',
