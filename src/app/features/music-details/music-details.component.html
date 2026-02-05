@@ -1,5 +1,5 @@
 <div class="details-container">
-  <button class="back" routerLink="/">← Back</button>
+  <button class="back" (click)="goBack()">← Back</button>
 
   <div *ngIf="isLoading" class="loading">Loading...</div>
   <div *ngIf="errorMessage && !isLoading" class="error">{{ errorMessage }}</div>

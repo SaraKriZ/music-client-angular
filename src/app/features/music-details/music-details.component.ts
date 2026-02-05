@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MusicService } from '../../services/music.service';
 import { Song } from '../../models/music.models';
+import { SearchHistoryService } from '../../services/search-history.service';
 
 @Component({
   selector: 'app-music-details',
@@ -16,7 +17,12 @@ export class MusicDetailsComponent implements OnInit {
   isLoading = false;
   errorMessage = '';
 
-  constructor(private route: ActivatedRoute, private musicService: MusicService) {}
+  constructor(
+    private route: ActivatedRoute,
+    private musicService: MusicService,
+    private router: Router,
+    private historyService: SearchHistoryService
+  ) {}
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -26,7 +32,7 @@ export class MusicDetailsComponent implements OnInit {
     }
 
     this.isLoading = true;
-    this.musicService.getRecordingDetails(id).subscribe({
+    this.musicService.getSongByID(id).subscribe({
       next: (s) => {
         this.song = s;
         this.isLoading = false;
@@ -39,4 +45,14 @@ export class MusicDetailsComponent implements OnInit {
       }
     });
   }
+
+  goBack(): void {
+    const last = this.historyService.getHistory()[0];
+    if (last) {
+      this.router.navigate(['/music'], { queryParams: { q: last } });
+    } else {
+      this.router.navigate(['/music']);
+    }
+  }
+
 }

@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, ActivatedRoute } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { MusicService } from '../../services/music.service';
 import { Song } from '../../models/music.models';
 import { SearchHistoryService } from '../../services/search-history.service';
@@ -13,7 +14,7 @@ import { SearchHistoryService } from '../../services/search-history.service';
 	templateUrl: './music-list.component.html',
 	styleUrls: ['./music-list.component.scss']
 })
-export class MusicListComponent implements OnInit {
+export class MusicListComponent implements OnInit, OnDestroy {
 	songs: Song[] = [];
 	searchQuery = '';
 	isLoading = false;
@@ -24,16 +25,33 @@ export class MusicListComponent implements OnInit {
 	constructor(
 		private musicService: MusicService,
 		private historyService: SearchHistoryService,
-		private route: ActivatedRoute
+		private route: ActivatedRoute,
+		private router: Router
 	) {}
+
+	private qpSub?: Subscription;
 
 	ngOnInit(): void {
 		this.history = this.historyService.getHistory();
-		const q = this.route.snapshot.queryParamMap.get('q');
-		if (q) {
-			this.searchQuery = q;
-			this.loadSongs();
-		}
+
+		// react to query param changes so browser Back/Forward restores searches
+		this.qpSub = this.route.queryParamMap.subscribe((params) => {
+			const q = params.get('q');
+			if (q) {
+				this.searchQuery = q;
+				this.loadSongs();
+			} else {
+				const last = this.historyService.getHistory()[0];
+				if (last) {
+					this.searchQuery = last;
+					this.loadSongs();
+				}
+			}
+		});
+	}
+
+	ngOnDestroy(): void {
+		this.qpSub?.unsubscribe();
 	}
 
 	loadSongs(): void {
@@ -63,15 +81,18 @@ export class MusicListComponent implements OnInit {
 	onSearchSubmit(): void {
 		const q = this.searchQuery?.trim();
 		if (!q) return;
+		// update URL so Back/Forward restores this search
+		this.router.navigate([], { relativeTo: this.route, queryParams: { q } });
 		this.historyService.addTerm(q);
 		this.history = this.historyService.getHistory();
 		this.songs = [];
-		this.loadSongs();
 	}
 
 	selectHistory(term: string): void {
 		this.searchQuery = term;
-		this.onSearchSubmit();
+		this.router.navigate([], { relativeTo: this.route, queryParams: { q: term } });
+		this.historyService.addTerm(term);
+		this.history = this.historyService.getHistory();
 	}
 
 	clearHistory(): void {
