@@ -11,28 +11,34 @@ export class MusicService {
 
 	constructor(private http: HttpClient) {}
 
-  searchSongs(query: string, limit: number = 20): Observable<Song[]> {
+  searchSongs(query: string, limit: number = 20, offset: number = 0): Observable<{ items: Song[]; count: number }> {
     const params: any = {
       query: query,
       fmt: 'json',
-      limit: String(limit)
+      limit: String(limit),
+      offset: String(offset)
     };
 
     return this.http.get<any>(this.MB_SEARCH_URL, { params }).pipe(
-      map(resp => (resp.recordings || []).map((rec: any) => {
-        const artistCredit = rec['artist-credit']?.[0] || {};
-        const release = rec.releases?.[0] || null;
+      map(resp => {
+        const recs = resp.recordings || [];
+        const items = recs.map((rec: any) => {
+          const artistCredit = rec['artist-credit']?.[0] || {};
+          const release = rec.releases?.[0] || null;
 
-        return {
-          id: rec.id,
-          title: rec.title,
-          artist: artistCredit.name || artistCredit.artist?.name || 'Unknown',
-          album: release?.title,
-          artworkUrl: release ? `${this.COVER_ART_URL}/${release.id}` : null,
-          description: rec.disambiguation || release?.disambiguation || ''
-        } as Song;
-      })),
-      catchError(() => of([]))
+          return {
+            id: rec.id,
+            title: rec.title,
+            artist: artistCredit.name || artistCredit.artist?.name || 'Unknown',
+            album: release?.title,
+            artworkUrl: release ? `${this.COVER_ART_URL}/${release.id}` : null,
+            description: rec.disambiguation || release?.disambiguation || ''
+          } as Song;
+        });
+
+        return { items, count: resp.count || items.length };
+      }),
+      catchError(() => of({ items: [], count: 0 }))
     );
   }
 

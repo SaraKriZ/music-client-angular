@@ -130,3 +130,28 @@
 	padding: 1rem;
 	color: #666;
 }
+
+.more-section {
+	text-align: center;
+	margin: 1rem 0 2rem 0;
+}
+
+.more-button {
+	padding: 0.6rem 1rem;
+	background: #007bff;
+	color: #fff;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 123, 255, 0.18);
+	transition: background 150ms ease, transform 120ms ease;
+}
+
+.more-button:hover { background: #0069d9; transform: translateY(-1px); }
+
+.more-button:disabled,
+.more-button[disabled] {
+	opacity: 0.65;
+	cursor: not-allowed;
+	box-shadow: none;
+}

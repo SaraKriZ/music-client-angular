@@ -20,6 +20,9 @@ export class MusicListComponent implements OnInit, OnDestroy {
 	isLoading = false;
 	errorMessage = '';
 	history: string[] = [];
+	pageSize = 20;
+	offset = 0;
+	totalCount = 0;
 
 
 	constructor(
@@ -61,19 +64,45 @@ export class MusicListComponent implements OnInit, OnDestroy {
 			return;
 		}
 
+		// fresh load: reset paging
+		this.offset = 0;
+		this.songs = [];
 		this.isLoading = true;
 		this.errorMessage = '';
 
-		this.musicService.searchSongs(q, 20).subscribe({
-			next: (data) => {
-				this.songs = data;
+		this.musicService.searchSongs(q, this.pageSize, this.offset).subscribe({
+			next: (res) => {
+				this.songs = res.items;
+				this.totalCount = res.count || res.items.length;
 				this.isLoading = false;
-				if (!data.length) this.errorMessage = 'No songs found.';
+				if (!res.items.length) this.errorMessage = 'No songs found.';
 			},
 			error: (err) => {
 				console.error(err);
 				this.isLoading = false;
 				this.errorMessage = 'Failed to fetch songs.';
+			}
+		});
+	}
+
+	loadMore(): void {
+		const q = this.searchQuery?.trim();
+		if (!q) return;
+
+		this.isLoading = true;
+		this.errorMessage = '';
+		this.offset += this.pageSize;
+
+		this.musicService.searchSongs(q, this.pageSize, this.offset).subscribe({
+			next: (res) => {
+				this.songs = [...this.songs, ...res.items];
+				this.totalCount = res.count || this.totalCount;
+				this.isLoading = false;
+			},
+			error: (err) => {
+				console.error(err);
+				this.isLoading = false;
+				this.errorMessage = 'Failed to fetch more songs.';
 			}
 		});
 	}
