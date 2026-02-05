@@ -17,6 +17,9 @@ export class MusicDetailsComponent implements OnInit {
   isLoading = false;
   errorMessage = '';
 
+  // Placeholder image path
+  public placeholderDataUrl = '/assets/images/image2song.svg';
+
   constructor(
     private route: ActivatedRoute,
     private musicService: MusicService,
@@ -44,6 +47,15 @@ export class MusicDetailsComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  // Handle image loading errors
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.src !== this.placeholderDataUrl) {
+      img.src = this.placeholderDataUrl;
+      img.alt = 'No image available';
+    }
   }
 
   goBack(): void {

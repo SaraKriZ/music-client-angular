@@ -6,8 +6,12 @@
 
   <div *ngIf="song" class="details-card">
     <div class="cover">
-      <img *ngIf="song.artworkUrl; else noImg" [src]="song.artworkUrl" [alt]="song.title" />
-      <ng-template #noImg><div class="no-image">No Image</div></ng-template>
+      <img
+        [src]="song.artworkUrl || placeholderDataUrl"
+        (error)="onImageError($event)"
+        [alt]="song.title"
+        class="album-image"
+      />
     </div>
     <div class="info">
       <h2>{{ song.title }}</h2>

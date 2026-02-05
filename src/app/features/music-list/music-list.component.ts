@@ -160,5 +160,15 @@ export class MusicListComponent implements OnInit, OnDestroy {
 		this.history = [];
 	}
 
+	// Placeholder image path for missing images
+	public placeholderDataUrl = '/assets/images/placeholder.svg';
 
+	// Method to handle image loading errors
+	onImageError(event: Event): void {
+	    const img = event.target as HTMLImageElement;
+	    if (img && img.src !== this.placeholderDataUrl) {
+	        img.src = this.placeholderDataUrl; // Set the placeholder image
+	        img.alt = 'No image available'; // Update the alt text
+	    }
+	}
 }

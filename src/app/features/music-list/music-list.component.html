@@ -34,14 +34,14 @@
 		<a *ngFor="let s of (songs$ | async)" [routerLink]="['/music', s.id]" class="song-card card-link">
 			<div class="album-image-wrapper">
 				<img
-					*ngIf="s.artworkUrl; else placeholder"
-					[src]="s.artworkUrl"
+					[src]="s.artworkUrl || placeholderDataUrl"
+					(error)="onImageError($event)"
 					[alt]="s.title"
 					class="album-image"
 				/>
-				<ng-template #placeholder>
+				<!-- <ng-template #placeholder>
 					<div class="placeholder-image">No Image</div>
-				</ng-template>
+				</ng-template> -->
 			</div>
 			<div class="song-details">
 				<h3 class="song-title">{{ s.title }}</h3>
