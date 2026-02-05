@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { MusicService } from '../../services/music.service';
 import { Song } from '../../models/music.models';
+import { SearchHistoryService } from '../../services/search-history.service';
 
 @Component({
 	selector: 'app-music-list',
@@ -14,14 +15,25 @@ import { Song } from '../../models/music.models';
 })
 export class MusicListComponent implements OnInit {
 	songs: Song[] = [];
-	searchQuery = 'beatles';
+	searchQuery = '';
 	isLoading = false;
 	errorMessage = '';
+	history: string[] = [];
 
-	constructor(private musicService: MusicService) {}
+
+	constructor(
+		private musicService: MusicService,
+		private historyService: SearchHistoryService,
+		private route: ActivatedRoute
+	) {}
 
 	ngOnInit(): void {
-		this.loadSongs();
+		this.history = this.historyService.getHistory();
+		const q = this.route.snapshot.queryParamMap.get('q');
+		if (q) {
+			this.searchQuery = q;
+			this.loadSongs();
+		}
 	}
 
 	loadSongs(): void {
@@ -49,7 +61,23 @@ export class MusicListComponent implements OnInit {
 	}
 
 	onSearchSubmit(): void {
+		const q = this.searchQuery?.trim();
+		if (!q) return;
+		this.historyService.addTerm(q);
+		this.history = this.historyService.getHistory();
 		this.songs = [];
 		this.loadSongs();
 	}
+
+	selectHistory(term: string): void {
+		this.searchQuery = term;
+		this.onSearchSubmit();
+	}
+
+	clearHistory(): void {
+		this.historyService.clear();
+		this.history = [];
+	}
+
+
 }
