@@ -26,12 +26,12 @@
 		</div>
 	</div>
 
-	<div *ngIf="isLoading" class="loading">Loading...</div>
+	<div *ngIf="isLoading$ | async" class="loading">Loading...</div>
 
-	<div *ngIf="errorMessage && !isLoading" class="error">{{ errorMessage }}</div>
+	<div *ngIf="(error$ | async) as err" class="error">{{ err }}</div>
 
 	<div class="songs-grid">
-		<a *ngFor="let s of songs" [routerLink]="['/music', s.id]" class="song-card card-link">
+		<a *ngFor="let s of (songs$ | async)" [routerLink]="['/music', s.id]" class="song-card card-link">
 			<div class="album-image-wrapper">
 				<img
 					*ngIf="s.artworkUrl; else placeholder"
@@ -52,11 +52,11 @@
 		</a>
 	</div>
 
-	<div *ngIf="!isLoading && songs.length === 0 && !errorMessage" class="no-results">
+	<div *ngIf="!(isLoading$ | async) && (songs$ | async)?.length === 0 && !(error$ | async)" class="no-results">
 		Enter a search query to find songs.
 	</div>
 
-<div class="more-section" *ngIf="!isLoading && songs.length > 0">
-  <button class="more-button" (click)="loadMore()" [disabled]="isLoading" *ngIf="songs.length < totalCount">More</button>
+<div class="more-section" *ngIf="!(isLoading$ | async) && (songs$ | async)?.length! > 0">
+	<button class="more-button" (click)="loadMore()" [disabled]="(isLoading$ | async)" *ngIf="(songs$ | async)?.length! < totalCount">More</button>
 </div>
 </div>

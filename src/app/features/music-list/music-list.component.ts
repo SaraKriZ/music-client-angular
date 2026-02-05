@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, BehaviorSubject, of } from 'rxjs';
+import { distinctUntilChanged, switchMap, catchError, finalize, map, tap } from 'rxjs/operators';
 import { MusicService } from '../../services/music.service';
 import { Song } from '../../models/music.models';
 import { SearchHistoryService } from '../../services/search-history.service';
@@ -12,13 +13,21 @@ import { SearchHistoryService } from '../../services/search-history.service';
 	standalone: true,
 	imports: [CommonModule, FormsModule, RouterModule],
 	templateUrl: './music-list.component.html',
-	styleUrls: ['./music-list.component.scss']
+	styleUrls: ['./music-list.component.scss'],
+	changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MusicListComponent implements OnInit, OnDestroy {
-	songs: Song[] = [];
+	// reactive subjects
+	private songsSubject = new BehaviorSubject<Song[]>([]);
+	songs$ = this.songsSubject.asObservable();
+
+	private isLoadingSubject = new BehaviorSubject<boolean>(false);
+	isLoading$ = this.isLoadingSubject.asObservable();
+
+	private errorSubject = new BehaviorSubject<string | null>(null);
+	error$ = this.errorSubject.asObservable();
+
 	searchQuery = '';
-	isLoading = false;
-	errorMessage = '';
 	history: string[] = [];
 	pageSize = 20;
 	offset = 0;
@@ -37,51 +46,78 @@ export class MusicListComponent implements OnInit, OnDestroy {
 	ngOnInit(): void {
 		this.history = this.historyService.getHistory();
 
-		// react to query param changes so browser Back/Forward restores searches
-		this.qpSub = this.route.queryParamMap.subscribe((params) => {
-			const q = params.get('q');
-			if (q) {
-				this.searchQuery = q;
-				this.loadSongs();
-			} else {
-				const last = this.historyService.getHistory()[0];
-				if (last) {
-					this.searchQuery = last;
-					this.loadSongs();
-				}
-			}
-		});
+		// react to query param changes and perform searches reactively
+		this.qpSub = this.route.queryParamMap
+			.pipe(
+				map((params) => params.get('q')),
+				distinctUntilChanged(),
+				switchMap((q) => {
+					const term = q ?? this.historyService.getHistory()[0] ?? '';
+					if (!term) {
+						// clear results
+						this.songsSubject.next([]);
+						this.searchQuery = '';
+						return of(null);
+					}
+
+					this.searchQuery = term;
+					this.historyService.addTerm(term);
+					this.history = this.historyService.getHistory();
+
+					this.isLoadingSubject.next(true);
+					this.errorSubject.next(null);
+
+					// perform search
+					return this.musicService.searchSongs(term, this.pageSize, 0).pipe(
+						tap((res) => {
+							this.totalCount = res.count || res.items.length;
+						}),
+						catchError((err) => {
+							console.error(err);
+							this.errorSubject.next('Failed to fetch songs.');
+							return of({ items: [], count: 0 });
+						}),
+						finalize(() => this.isLoadingSubject.next(false))
+					);
+				})
+			)
+			.subscribe((res) => {
+				if (!res) return;
+				this.offset = 0;
+				this.songsSubject.next(res.items);
+			});
 	}
 
 	ngOnDestroy(): void {
 		this.qpSub?.unsubscribe();
+		this.songsSubject.complete();
+		this.isLoadingSubject.complete();
+		this.errorSubject.complete();
 	}
 
+	// legacy imperative load (used for "More") - appends results
 	loadSongs(): void {
+		// kept for compatibility with manual triggers; prefer query param driven searches
 		const q = this.searchQuery?.trim();
 		if (!q) {
-			this.errorMessage = 'Please enter a search query.';
+			this.errorSubject.next('Please enter a search query.');
 			return;
 		}
 
-		// fresh load: reset paging
 		this.offset = 0;
-		this.songs = [];
-		this.isLoading = true;
-		this.errorMessage = '';
+		this.isLoadingSubject.next(true);
+		this.errorSubject.next(null);
 
-		this.musicService.searchSongs(q, this.pageSize, this.offset).subscribe({
-			next: (res) => {
-				this.songs = res.items;
-				this.totalCount = res.count || res.items.length;
-				this.isLoading = false;
-				if (!res.items.length) this.errorMessage = 'No songs found.';
-			},
-			error: (err) => {
+		this.musicService.searchSongs(q, this.pageSize, this.offset).pipe(
+			catchError((err) => {
 				console.error(err);
-				this.isLoading = false;
-				this.errorMessage = 'Failed to fetch songs.';
-			}
+				this.errorSubject.next('Failed to fetch songs.');
+				return of({ items: [], count: 0 });
+			}),
+			finalize(() => this.isLoadingSubject.next(false))
+		).subscribe((res) => {
+			this.songsSubject.next(res.items);
+			this.totalCount = res.count || res.items.length;
 		});
 	}
 
@@ -89,39 +125,34 @@ export class MusicListComponent implements OnInit, OnDestroy {
 		const q = this.searchQuery?.trim();
 		if (!q) return;
 
-		this.isLoading = true;
-		this.errorMessage = '';
+		this.isLoadingSubject.next(true);
+		this.errorSubject.next(null);
 		this.offset += this.pageSize;
 
-		this.musicService.searchSongs(q, this.pageSize, this.offset).subscribe({
-			next: (res) => {
-				this.songs = [...this.songs, ...res.items];
-				this.totalCount = res.count || this.totalCount;
-				this.isLoading = false;
-			},
-			error: (err) => {
+		this.musicService.searchSongs(q, this.pageSize, this.offset).pipe(
+			catchError((err) => {
 				console.error(err);
-				this.isLoading = false;
-				this.errorMessage = 'Failed to fetch more songs.';
-			}
+				this.errorSubject.next('Failed to fetch more songs.');
+				return of({ items: [], count: 0 });
+			}),
+			finalize(() => this.isLoadingSubject.next(false))
+		).subscribe((res) => {
+			const current = this.songsSubject.getValue();
+			this.songsSubject.next([...current, ...res.items]);
+			this.totalCount = res.count || this.totalCount;
 		});
 	}
 
 	onSearchSubmit(): void {
 		const q = this.searchQuery?.trim();
 		if (!q) return;
-		// update URL so Back/Forward restores this search
+		// update URL so query param pipeline performs the search
 		this.router.navigate([], { relativeTo: this.route, queryParams: { q } });
-		this.historyService.addTerm(q);
-		this.history = this.historyService.getHistory();
-		this.songs = [];
 	}
 
 	selectHistory(term: string): void {
 		this.searchQuery = term;
 		this.router.navigate([], { relativeTo: this.route, queryParams: { q: term } });
-		this.historyService.addTerm(term);
-		this.history = this.historyService.getHistory();
 	}
 
 	clearHistory(): void {
