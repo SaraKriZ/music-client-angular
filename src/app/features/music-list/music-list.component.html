@@ -21,7 +21,7 @@
 	<div *ngIf="errorMessage && !isLoading" class="error">{{ errorMessage }}</div>
 
 	<div class="songs-grid">
-		<a *ngFor="let s of songs" [routerLink]="['/detail', s.id]" class="song-card card-link">
+		<a *ngFor="let s of songs" [routerLink]="['/music', s.id]" class="song-card card-link">
 			<div class="album-image-wrapper">
 				<img
 					*ngIf="s.artworkUrl; else placeholder"
